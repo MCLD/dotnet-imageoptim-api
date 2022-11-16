@@ -22,7 +22,7 @@ RUN dotnet pack -c Release ImageOptimApi -o "/app/publish/"
 RUN cp /app/release-publish.bash "/app/publish/"
 
 # Get runtime image
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
+FROM mcr.microsoft.com/dotnet/sdk:7.0@sha256:a320a69c64e425e7eb42f8841d034fc3a4bb7a925ebb834c13680925c85e282c AS publish
 
 WORKDIR /app
 
