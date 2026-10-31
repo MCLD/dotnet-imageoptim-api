@@ -1,14 +1,15 @@
-name: "Build - action"
+name: ci
+run-name: ${{ github.actor }} is running ci
 
 on: [push, pull_request]
 
 jobs:
   build-docker-image:
-    name: "ImageOptimApi Docker"
+    name: "ImageOptimApi Container"
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
       - name: Create environment file
         run: echo NUGET_API_KEY=${{ secrets.NUGET_API_KEY }} >> release.env
@@ -24,8 +25,9 @@ jobs:
           GHCR_USER: ${{secrets.GHCR_USER}}
         run: ./build.bash -p
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v7
         with:
           name: ImageOptimApi.nupkg
           path: package/ImageOptimApi.*.nupkg
           if-no-files-found: ignore
+

@@ -100,6 +100,11 @@ When you need the `ImageOptimApi` client you can obtain it from the `ServiceProv
 
 You can then configure and use the client to optimize your images.
 
+## Version History
+
+- v1.2.0 - .NET 8.0 - adds the ability to work on an image provided as a byte array
+- v1.1.0 - .NET 7.0
+
 ## License
 
 The ImageOptimApi source code is Copyright 2022 by the Maricopa County Library District and is distributed under [The MIT License](http://opensource.org/licenses/MIT).

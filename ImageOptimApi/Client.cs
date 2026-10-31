@@ -1,5 +1,3 @@
-﻿using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,6 +6,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Logging;
 
 namespace ImageOptimApi
 {
@@ -50,26 +50,6 @@ namespace ImageOptimApi
         public string Username { get; set; }
         public int? Width { get; set; }
 
-        public Task<OptimizedImageResult> OptimizeAsync(Uri imageUri)
-        {
-            if (imageUri == null || string.IsNullOrEmpty(imageUri.AbsoluteUri))
-            {
-                throw new ArgumentNullException(nameof(imageUri));
-            }
-
-            return OptimizeImageInternalAsync(null, imageUri);
-        }
-
-        public Task<OptimizedImageResult> OptimizeAsync(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-            {
-                throw new ArgumentNullException(nameof(path));
-            }
-
-            return OptimizeImageInternalAsync(path, null);
-        }
-
         private static string ConvertCropType(CropType cropType) => cropType switch
         {
             CropType.Auto => "crop=auto",
@@ -97,8 +77,37 @@ namespace ImageOptimApi
             _ => "medium"
         };
 
-        private async Task<OptimizedImageResult> OptimizeImageInternalAsync(string path, Uri imageUri)
+        public Task<OptimizedImageResult> OptimizeAsync(Uri imageUri)
         {
+            return imageUri == null || string.IsNullOrEmpty(imageUri.AbsoluteUri)
+                ? throw new ArgumentNullException(nameof(imageUri))
+                : OptimizeImageInternalAsync(null, imageUri, null, null);
+        }
+
+        public Task<OptimizedImageResult> OptimizeAsync(string path)
+        {
+            return string.IsNullOrEmpty(path)
+                ? throw new ArgumentNullException(nameof(path))
+                : OptimizeImageInternalAsync(path, null, null, null);
+        }
+
+        public Task<OptimizedImageResult> OptimizeAsync(byte[] imageBytes, string filename)
+        {
+            return OptimizeImageInternalAsync(null, null, imageBytes, filename);
+        }
+
+        private async Task<OptimizedImageResult> OptimizeImageInternalAsync(string path,
+            Uri imageUri,
+            byte[] imageBytes,
+            string imageFilename)
+        {
+            if (string.IsNullOrWhiteSpace(path)
+                && imageUri == null
+                && (imageBytes == null || string.IsNullOrWhiteSpace(imageFilename)))
+            {
+                throw new ArgumentException("You must supply an iamge path, an image URI, or image bytes along with a filename.");
+            }
+
             var sw = Stopwatch.StartNew();
             _logger.LogDebug("Preparing parameters");
             var urlPath = PrepareParameters(_httpClient.Timeout);
@@ -111,25 +120,38 @@ namespace ImageOptimApi
             string contentType = null;
             Uri requestUri;
 
-            if (string.IsNullOrEmpty(path))
+            if (imageUri != null)
             {
                 requestUri = new Uri(BaseAddress + urlPath + imageUri);
                 _logger.LogDebug("Using image from URL, image path: {ImagePath}", imageUri);
             }
             else
             {
-                if (!System.IO.File.Exists(path))
+                if (!string.IsNullOrEmpty(path))
                 {
-                    throw new ParameterException($"File not found: {path}");
+                    if (!System.IO.File.Exists(path))
+                    {
+                        throw new ParameterException($"File not found: {path}");
+                    }
+                    filename = System.IO.Path.GetFileName(path);
+                    var provider = new FileExtensionContentTypeProvider();
+                    if (!provider.TryGetContentType(filename, out contentType))
+                    {
+                        throw new ParameterException($"Unable to determine type of file: {filename}");
+                    }
+                    _logger.LogDebug("Reading file at path: {ImagePath}", path);
+                    image = await System.IO.File.ReadAllBytesAsync(path);
                 }
-                filename = System.IO.Path.GetFileName(path);
-                var provider = new FileExtensionContentTypeProvider();
-                if (!provider.TryGetContentType(filename, out contentType))
+                else
                 {
-                    throw new ParameterException($"Unable to determine type of file: {filename}");
+                    filename = imageFilename;
+                    var provider = new FileExtensionContentTypeProvider();
+                    if (!provider.TryGetContentType(filename, out contentType))
+                    {
+                        throw new ParameterException($"Unable to determine type of file: {filename}");
+                    }
+                    image = imageBytes;
                 }
-                _logger.LogDebug("Reading file at path: {ImagePath}", path);
-                image = await System.IO.File.ReadAllBytesAsync(path);
                 optimized.OriginalSize = image.Length;
                 requestUri = new Uri(BaseAddress + urlPath);
             }
@@ -141,7 +163,7 @@ namespace ImageOptimApi
             {
                 if (image != null)
                 {
-                    form = new MultipartFormDataContent();
+                    form = [];
                     byteContent = new ByteArrayContent(image);
                     byteContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
                     form.Add(byteContent, name: "file", fileName: filename);
@@ -174,7 +196,7 @@ namespace ImageOptimApi
 
             if (DisableWebCall)
             {
-                optimized.File = image ?? new byte[] { 0xff };
+                optimized.File = image ?? [0xff];
                 optimized.Status = Status.TestSuccess;
                 optimized.StatusMessage = "Test call, file is not an optimized message.";
                 sw.Stop();
@@ -317,7 +339,7 @@ namespace ImageOptimApi
                 options.Add($"timeout={timeout.TotalSeconds}");
             }
 
-            return string.Join("/", new[] { Username, string.Join(",", options) }) + '/';
+            return string.Join("/", [Username, string.Join(",", options)]) + '/';
         }
 
         private void VerifyParameters()

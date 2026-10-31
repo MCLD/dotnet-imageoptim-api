@@ -1,8 +1,8 @@
-﻿using CommandLine;
+﻿using System.Net.Http.Headers;
+using System.Reflection;
+using CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using System.Reflection;
 
 namespace ImageOptimApi.Console
 {
@@ -80,7 +80,7 @@ namespace ImageOptimApi.Console
             var title = Assembly
                 .GetEntryAssembly()?
                 .GetCustomAttribute<AssemblyTitleAttribute>()?
-                .Title ?? nameof(ImageOptimApi) + '.' + nameof(ImageOptimApi.Console);
+                .Title ?? (nameof(ImageOptimApi) + '.' + nameof(ImageOptimApi.Console));
             var version = Assembly
                 .GetEntryAssembly()?
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -96,7 +96,8 @@ namespace ImageOptimApi.Console
                 .ConfigureHttpClient(_ =>
                 {
                     _.Timeout = TimeSpan.FromSeconds(30);
-                    _.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(title, version));
+                    _.DefaultRequestHeaders.UserAgent
+                        .Add(new ProductInfoHeaderValue(title, version));
                 });
             _provider = services.BuildServiceProvider();
 
@@ -194,11 +195,13 @@ namespace ImageOptimApi.Console
                     {
                         if (string.IsNullOrEmpty(inputFilePath))
                         {
-                            System.Console.WriteLine($"Optimized {inputFilename} to {outputFilename} {result.File.Length:N0} bytes in {result.ElapsedSeconds:N0}s");
+                            System.Console.WriteLine(
+                                $"Optimized {inputFilename} to {outputFilename} {result.File.Length:N0} bytes in {result.ElapsedSeconds:N0}s");
                         }
                         else
                         {
-                            System.Console.WriteLine($"Optimized {inputFilename} to {outputFilename} from {result.OriginalSize:N0} to {result.File.Length:N0} bytes in {result.ElapsedSeconds:N0}s");
+                            System.Console.WriteLine(
+                                $"Optimized {inputFilename} to {outputFilename} from {result.OriginalSize:N0} to {result.File.Length:N0} bytes in {result.ElapsedSeconds:N0}s");
                         }
 
                         if (!string.IsNullOrEmpty(options.OutputPath))
@@ -206,7 +209,9 @@ namespace ImageOptimApi.Console
                             Directory.CreateDirectory(options.OutputPath);
                         }
 
-                        await File.WriteAllBytesAsync(Path.Combine(options.OutputPath, outputFilename), result.File);
+                        await File.WriteAllBytesAsync(
+                            Path.Combine(options.OutputPath, outputFilename),
+                            result.File);
                         return 1;
                     }
                     else
