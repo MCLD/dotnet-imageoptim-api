@@ -76,11 +76,5 @@ msg "${BLUE}===${NOFORMAT} Copying NuGet package..."
 mkdir -p "/package" && \
 cp /app/ImageOptimApi*.nupkg /package
 
-if [[ -z $NUGET_API_KEY ]]; then
-  msg "${RED}===${NOFORMAT} Not uploading NuGet package, API key not set"
-else
-  msg "${BLUE}===${NOFORMAT} Publishing to NuGet..."
-  dotnet nuget push /package/ImageOptimApi.*.nupkg --api-key "${NUGET_API_KEY}" --source https://api.nuget.org/v3/index.json
-fi
-
 msg "${PURPLE}===${NOFORMAT} Publish script complete in $((SECONDS - PUB_STARTAT)) seconds."
+
