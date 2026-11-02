@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ImageOptimApi.Console
+﻿namespace ImageOptimApi.Console
 {
     internal class OptionException : Exception
     {
@@ -16,7 +10,7 @@ namespace ImageOptimApi.Console
         {
         }
 
-        public OptionException(string? message, Exception? innerException) 
+        public OptionException(string? message, Exception? innerException)
             : base(message, innerException)
         {
         }

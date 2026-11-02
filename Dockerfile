@@ -1,5 +1,5 @@
 # Get build image
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN dotnet pack -c Release ImageOptimApi -o "/app/publish/"
 RUN cp /app/release-publish.bash "/app/publish/"
 
 # Get runtime image
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
 
 WORKDIR /app
 
@@ -57,3 +57,4 @@ COPY --from=build "/app/publish/" .
 
 # Set entrypoint
 ENTRYPOINT ["/app/release-publish.bash"]
+

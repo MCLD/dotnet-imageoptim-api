@@ -1,9 +1,8 @@
-name: "Packages - action"
+name: dotnet outdated
+run-name: ${{ github.actor }} is running dotnet outdated
 
 on:
   pull_request:
-  schedule:
-    - cron: '0 5 * * 5'
 
 jobs:
   dotnet-outdated:
@@ -11,6 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
 
-    - uses: mcld/dotnet-outdated-action@v3
+    - uses: mcld/dotnet-outdated-action@v4.1

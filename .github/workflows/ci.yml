@@ -1,0 +1,68 @@
+name: ci
+run-name: ${{ github.actor }} is running ci
+
+on: [push, pull_request]
+
+jobs:
+  build-docker-image:
+    name: "ImageOptimApi Container"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run build.bash
+        env:
+          BLD_DOCKER_IMAGE: imageoptimapi
+          CR_OWNER: ${{secrets.CR_OWNER}}
+          CR_PASSWORD: ${{secrets.CR_PASSWORD}}
+          CR_USER: ${{secrets.CR_USER}}
+          GHCR_OWNER: ${{secrets.GHCR_OWNER}}
+          GHCR_PAT: ${{secrets.GHCR_PAT}}
+          GHCR_USER: ${{secrets.GHCR_USER}}
+        run: ./build.bash -p
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ImageOptimApi.nupkg
+          path: package/ImageOptimApi.*.nupkg
+          if-no-files-found: ignore
+
+  push-nupkg-to-nuget:
+    if: contains( github.ref, 'release' )
+    name: "Push ImageOptimApi Nupkg"
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run build.bash
+        env:
+          BLD_DOCKER_IMAGE: imageoptimapi
+          CR_OWNER: ${{secrets.CR_OWNER}}
+          CR_PASSWORD: ${{secrets.CR_PASSWORD}}
+          CR_USER: ${{secrets.CR_USER}}
+          GHCR_OWNER: ${{secrets.GHCR_OWNER}}
+          GHCR_PAT: ${{secrets.GHCR_PAT}}
+          GHCR_USER: ${{secrets.GHCR_USER}}
+        run: ./build.bash -p
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ImageOptimApi.nupkg
+          path: package/ImageOptimApi.*.nupkg
+          if-no-files-found: ignore
+
+      # Get a short-lived NuGet API key
+      - name: NuGet login (OIDC → temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+    
+      # Push the package
+      - name: NuGet push
+        run: dotnet nuget push package/ImageOptimApi.*.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
+
